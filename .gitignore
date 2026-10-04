@@ -1,1 +1,7 @@
-(empty)
+build_out/
+*.pbo
+__pycache__/
+*.pyc
+# служебные
+.DS_Store
+Thumbs.db

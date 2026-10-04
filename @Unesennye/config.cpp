@@ -103,6 +103,7 @@ class CfgVehicles
     {
         displayName = "Проигрыватель дисков";
         descriptionShort = "Простой CD-плеер. Поддерживает виниловые и цифровые диски.";
+        model = "\Unesennye_Data\Data\Gear\DiskPlayer\disk_player.p3d"; // заглушка-модель
         weight = 1200;
         itemSize[] = {7, 5};
     };
@@ -121,6 +122,7 @@ class CfgVehicles
     {
         displayName = "Автомобильная магнитола";
         descriptionShort = "Устанавливается в автомобиль. Играет через бортовые динамики.";
+        model = "\Unesennye_Data\Data\Gear\CarRadio\car_radio.p3d"; // заглушка-модель
         weight = 800;
         itemSize[] = {5, 3};
     };
@@ -147,7 +149,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Портативная колонка";
         descriptionShort = "Усиливает звук подключённого плеера и разносит его далеко. Требует батарейки.";
-        model = "\Unesennye_Data\Data\Gear\RadioReceiver\radio.p3d"; // заглушка-модель
+        model = "\Unesennye_Data\Data\Gear\Speaker\speaker.p3d"; // заглушка-модель
         vehicleClass = "UE_AudioEquipment";
         weight = 2500;
         itemSize[] = {7, 5};
