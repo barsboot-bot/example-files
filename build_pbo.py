@@ -132,6 +132,11 @@ def main():
     m2 = os.path.join(stage_cli, "mpmissions", "unesennye.Mission.Enoch.pbo")
     packer(mission_src, m2)
 
+    # PBO ассетов (модели .p3d + текстуры) — отдельный аддон Unesennye_Data
+    data_src = os.path.join(src, "Unesennye_Data")
+    if os.path.isdir(data_src):
+        packer(data_src, os.path.join(stage_cli, "Unesennye_Data.pbo"))
+
     # ---- staging сервера @UnesennyeServer --------------------------------
     stage_srv = os.path.join(OUT, "@UnesennyeServer")
     os.makedirs(stage_srv)

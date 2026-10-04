@@ -86,7 +86,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Кассетный плеер";
         descriptionShort = "Портативный магнитофон. Вставьте кассету и нажмите «Воспроизвести».";
-        model = "\dz\gear\electronics\notepad.p3d"; // заглушка-модель, замените на свою
+        model = "\Unesennye_Data\Data\Gear\CassettePlayer\player.p3d"; // заглушка-модель, замените на свою
         weight = 900;
         itemSize[] = {6, 4};
         allowedToAccessInProxy = 0;
@@ -133,7 +133,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Наушники";
         descriptionShort = "Позволяют слушать музыку только вам. Подключите к плееру или приёмнику.";
-        model = "\dz\gear\headsets\headset_blue.p3d"; // заглушка-модель
+        model = "\Unesennye_Data\Data\Gear\Headphones\headphones.p3d"; // заглушка-модель
         weight = 150;
         itemSize[] = {4, 2};
         varValue = 0.6;   // хрупкость
@@ -147,7 +147,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Портативная колонка";
         descriptionShort = "Усиливает звук подключённого плеера и разносит его далеко. Требует батарейки.";
-        model = "\dz\gear\electronics\shortwavealien.p3d"; // заглушка-модель
+        model = "\Unesennye_Data\Data\Gear\RadioReceiver\radio.p3d"; // заглушка-модель
         vehicleClass = "UE_AudioEquipment";
         weight = 2500;
         itemSize[] = {7, 5};
@@ -164,7 +164,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Кассета: Рок-хиты 80-х";
         descriptionShort = "Аудиокассета с записью рок-композиций.";
-        model = "\dz\items\magazine_rifle_556.p3d";
+        model = "\Unesennye_Data\Data\Gear\Cassette\cassette.p3d";
         weight = 100;
         itemSize[] = {4, 2};
     };
@@ -191,7 +191,7 @@ class CfgVehicles
         scope = 2;
         displayName = "Магазин: Кассета (Рок)";
         descriptionShort = "Кассета, вставленная в плеер.";
-        model = "\dz\items\magazine_rifle_556.p3d";
+        model = "\Unesennye_Data\Data\Gear\Cassette\cassette.p3d";
         ammo = "UE_Track_Rock";
         count = 1;
         weight = 100;
