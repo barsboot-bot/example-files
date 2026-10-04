@@ -75,10 +75,11 @@ modded class ModuleManager
 
 modded class DayZGame
 {
-    // глобальный тик аудио-менеджера
+    // глобальный тик аудио-менеджера + HUD
     override void OnUpdate(float timeDelta)
     {
         super.OnUpdate(timeDelta);
         UE_AudioManager.Instance().OnUpdate(timeDelta);
+        UE_AudioManager.Instance().UpdateHUD(timeDelta);
     }
 };

@@ -24,6 +24,11 @@ class UE_PlaybackState
     string stationKey;  // ключ радиостанции (для типа RADIO)
     string playlist;    // имя плейлиста (кассета/диск)
     float startedAt;    // время старта (серверное), для синхронизации трека
+    // ---- аксессуары (наушники/колонки) ----
+    ref PlayerBase privateOwner;    // сервер: игрок с наушниками (слышит только он), null = все
+    int privateOwnerID;             // клиентское зеркало: GetID() владельца (0 = публичный)
+    Object speaker;                 // подключённая колонка (усиление), null = нет
+    bool hasSpeaker;                // серв+клиент: факт наличия колонки (для затухания)
 };
 
 class UE_AudioManager: ScriptModule
@@ -37,6 +42,12 @@ class UE_AudioManager: ScriptModule
     private float m_TickInterval = 0.5;
     private float m_LastTickTime = 0;
     private bool m_IsServer;
+    private float m_HeadphonesRange = 5.0;
+    private float m_SpeakerRange = 8.0;
+    private float m_SpRadiusMult = 3.0;
+    private float m_SpVolMult = 1.2;
+    private string m_StreamProxyURL = "";
+    private ref UE_HUD m_HUD;   // клиентский оверлей "что играет"
 
     void UE_AudioManager()
     {
@@ -62,6 +73,14 @@ class UE_AudioManager: ScriptModule
         if (!GetGame().ConfigGetString("UE_Config musicRoot", root)) root = "Music";
         UE_MusicLibrary.SetRoot(root);
 
+        // аксессуары + прокси
+        int v2;
+        if (GetGame().ConfigGetInt("UE_Config headphonesRange", v2)) m_HeadphonesRange = v2;
+        if (GetGame().ConfigGetInt("UE_Config speakerRange", v2)) m_SpeakerRange = v2;
+        if (GetGame().ConfigGetInt("UE_Config speakerRadiusMult", v2)) m_SpRadiusMult = v2;
+        if (GetGame().ConfigGetInt("UE_Config speakerVolumeMult", v2)) m_SpVolMult = v2;
+        if (!GetGame().ConfigGetString("UE_Config streamProxyURL", m_StreamProxyURL)) m_StreamProxyURL = "";
+
         if (m_IsServer)
         {
             // скан внешних папок Music/Type и Music/CD + Radio.txt,
@@ -72,27 +91,59 @@ class UE_AudioManager: ScriptModule
             if (!GetGame().ConfigGetString("UE_Config libraryBaseURL", baseUrl)) baseUrl = "";
             UE_MusicLibrary.s_Manifest = UE_MusicLibrary.EncodeManifest(baseUrl);
         }
+        else
+        {
+            // клиентский оверлей «что сейчас играет»
+            m_HUD = new UE_HUD;
+        }
     }
 
+    float GetHeadphonesRange() { return m_HeadphonesRange; }
+    float GetSpeakerRange()    { return m_SpeakerRange; }
+    string GetStreamProxyURL() { return m_StreamProxyURL; }
+    static UE_HUD GetHUD()     { return Instance().m_HUD; }
+
     //~ ---------------------------------------------------------
-    //~  Расчёт громкости с учётом расстояния (затухание)
+    //~  Расчёт громкости с учётом расстояния (затухание) +
+    //~  аксессуары: наушники (приватно), колонка (усиление).
     //~  volume = base * clamp( (d0/d)^curve , 0..1 )
-    //~  d <= m_MinVolDist -> максимум, d >= m_MaxHearDist -> 0
+    //~  d <= m_MinVolDist -> максимум, d >= слышимый радиус -> 0
     //~ ---------------------------------------------------------
-    float CalcAttenuation(vector srcPos, float baseVol)
+    float CalcAttenuation(vector srcPos, float baseVol, int srcId = -1)
     {
         PlayerBase pl = PlayerBase.Cast(GetGame().GetPlayer());
         if (!pl) return 0;
+
+        // ---- наушники: приватный источник слышит только владелец ----
+        UE_PlaybackState st;
+        if (srcId >= 0 && s_ClientMirror && s_ClientMirror.Find(srcId, st))
+        {
+            if (st.privateOwnerID != 0)
+            {
+                // на клиенте ссылка на игрока недоступна — сверяем id
+                if (st.privateOwnerID != pl.GetID()) return 0.0;
+                return Math.Clamp(st.volume * 1.0, 0.0, 1.0);   // полная громкость в уши
+            }
+        }
+
         vector plPos = pl.GetPosition();
+        float maxDist = m_MaxHearDist;
+        float vol = baseVol;
+        // ---- колонка усиливает: больший радиус и громкость ----
+        if (srcId >= 0 && st && st.hasSpeaker)
+        {
+            maxDist *= m_SpRadiusMult;
+            vol = Math.Clamp(vol * m_SpVolMult, 0.0, 1.0);
+        }
         float dist = vector.Distance(srcPos, plPos);
-        if (dist >= m_MaxHearDist) return 0.0;
-        if (dist <= m_MinVolDist) return baseVol;
+        if (dist >= maxDist) return 0.0;
+        if (dist <= m_MinVolDist) return vol;
         float ratio = m_MinVolDist / dist;              // <1 при отдалении
         float atten = Math.Pow(ratio, m_FadeCurve);     // квадратичное затухание
         // дополнительно мягко режем хвост у границы слышимости
-        float edgeFade = (m_MaxHearDist - dist) / (m_MaxHearDist - m_MinVolDist);
+        float edgeFade = (maxDist - dist) / (maxDist - m_MinVolDist);
         atten = atten * Math.Clamp(edgeFade * 1.5, 0, 1);
-        return baseVol * atten;
+        return vol * atten;
     }
 
     //~ ---------------------------------------------------------
@@ -148,6 +199,90 @@ class UE_AudioManager: ScriptModule
         UE_ModulePlayer.RPC_StopSource(id);
         m_Sources.Remove(id);
         Print("[унесённые] источник #" + id + " остановлен");
+    }
+
+    //~ ---------------------------------------------------------
+    //~  Аксессуары: наушники (приватно) и колонка (усиление).
+    //~  Вызывается с сервера из модуля UE_ModuleAccessories.
+    //~ ---------------------------------------------------------
+    bool IsPrivate(int id)
+    {
+        UE_PlaybackState st;
+        return m_Sources.Find(id, st) && st.privateOwner != null;
+    }
+
+    //~ сделать источник слышимым только для одного игрока
+    void SetPrivateListener(int id, PlayerBase pl, bool on)
+    {
+        UE_PlaybackState st;
+        if (!m_Sources.Find(id, st)) return;
+        st.privateOwner = on ? pl : null;
+        st.privateOwnerID = on ? pl.GetID() : 0;
+        BroadcastAccessoryState(st);
+        Print("[унесённые] источник #" + id + (on ? " приватен (наушники)" : " снова публичный"));
+    }
+
+    void ClearPrivateForPlayer(PlayerBase pl)
+    {
+        for (int i = 0; i < m_Sources.Count(); i++)
+        {
+            UE_PlaybackState st = m_Sources.GetByIndex(i).Get2();
+            if (st && st.privateOwner == pl)
+            {
+                st.privateOwner = null;
+                st.privateOwnerID = 0;
+                BroadcastAccessoryState(st);
+            }
+        }
+    }
+
+    //~ подключить колонку к источнику (усиление радиуса/громкости)
+    bool AttachSpeaker(int id, Object spk)
+    {
+        UE_PlaybackState st;
+        if (!m_Sources.Find(id, st) || !spk) return false;
+        // одна колонка уже занята?
+        if (HasSpeakerAttached(spk)) return false;
+        // дистанция до источника (валидация на сервере)
+        if (vector.Distance(spk.GetPosition(), st.position) > m_SpeakerRange) return false;
+        st.speaker = spk;
+        st.hasSpeaker = true;
+        BroadcastAccessoryState(st);
+        return true;
+    }
+
+    bool HasSpeakerAttached(Object spk)
+    {
+        if (!spk) return false;
+        for (int i = 0; i < m_Sources.Count(); i++)
+        {
+            UE_PlaybackState st = m_Sources.GetByIndex(i).Get2();
+            if (st && st.speaker == spk) return true;
+        }
+        return false;
+    }
+
+    void DetachSpeaker(Object spk)
+    {
+        for (int i = 0; i < m_Sources.Count(); i++)
+        {
+            UE_PlaybackState st = m_Sources.GetByIndex(i).Get2();
+            if (st && st.speaker == spk)
+            {
+                st.speaker = null;
+                st.hasSpeaker = false;
+                BroadcastAccessoryState(st);
+                return;
+            }
+        }
+    }
+
+    //~ сервер -> всем клиентам: обновить флаги аксессуаров у источника
+    void BroadcastAccessoryState(UE_PlaybackState st)
+    {
+        int privId = st.privateOwnerID;
+        if (st.privateOwner && !st.privateOwner.IsAlive()) privId = 0;  // игрок вышел — снимаем приватность
+        UE_ModulePlayer.RPC_SetAccessory(st.id, privId, st.hasSpeaker);
     }
 
     void StopAllByObject(Object obj)
@@ -228,7 +363,7 @@ class UE_AudioManager: ScriptModule
 
     void ApplyLocalVolume(UE_PlaybackState st)
     {
-        float v = CalcAttenuation(st.position, st.volume);
+        float v = CalcAttenuation(st.position, st.volume, st.id);
         // применяем к локальному звуковому источнику клиента
         UE_LocalSound snd;
         if (ClientSounds().Find(st.id, snd))
@@ -236,6 +371,12 @@ class UE_AudioManager: ScriptModule
             snd.SetVolume(v);   // v уже учитывает базовую громкость st.volume
             snd.SetPosition(st.position);                // для мостовых источников (3D-пан)
         }
+    }
+
+    //~ тик клиентского оверлея (название трека/станции)
+    void UpdateHUD(float dt)
+    {
+        if (m_HUD) m_HUD.Update(dt);
     }
 
     static UE_AudioManager Instance()

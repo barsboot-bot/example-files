@@ -33,8 +33,8 @@ class CfgPatches
         version = "1.0.0";
         requiredVersion = 0;
         requiredAddons[] = {};
-        units[] = { "UE_CassettePlayer", "UE_DiskPlayer", "UE_RadioReceiver", "UE_CarRadioUnit" };
-        weapons[] = { "UE_Magazine_Cassette_Rock", "UE_Magazine_Cassette_Pop", "UE_Magazine_Disk_Classic", "UE_Item_Cassette_Rock", "UE_Item_Disk_Pop" };
+        units[] = { "UE_CassettePlayer", "UE_DiskPlayer", "UE_RadioReceiver", "UE_CarRadioUnit", "UE_Headphones", "UE_PortableSpeaker" };
+        weapons[] = { "UE_Magazine_Cassette_Rock", "UE_Magazine_Cassette_Pop", "UE_Magazine_Disk_Classic", "UE_Item_Cassette_Rock", "UE_Item_Disk_Dance" };
     };
 };
 
@@ -79,7 +79,6 @@ class CfgVehicles
     class InventoryBase;
     class ItemBase;
     class Battery;
-    #define _QUOTE(X) #X
 
     // ================== КАССЕТНЫЙ ПЛЕЕР ==================
     class UE_CassettePlayer_Base: InventoryBase
@@ -124,6 +123,39 @@ class CfgVehicles
         descriptionShort = "Устанавливается в автомобиль. Играет через бортовые динамики.";
         weight = 800;
         itemSize[] = {5, 3};
+    };
+
+    // ================== НАУШНИКИ (приватное прослушивание) ==========
+    // Подключаются к плееру (UE_ConnectToPlayerAction). Громкость
+    // слышите ТОЛЬКО ВЫ — источник становится неслышимым для других.
+    class UE_Headphones: InventoryBase
+    {
+        scope = 2;
+        displayName = "Наушники";
+        descriptionShort = "Позволяют слушать музыку только вам. Подключите к плееру или приёмнику.";
+        model = "\dz\gear\headsets\headset_blue.p3d"; // заглушка-модель
+        weight = 150;
+        itemSize[] = {4, 2};
+        varValue = 0.6;   // хрупкость
+    };
+
+    // ================== ПОРТАТИВНАЯ КОЛОНКА (усилитель) =============
+    // Ставится на землю, подключается к плееру. Увеличивает радиус
+    // слышимости источника x3 и базовую громкость до 1.0.
+    class UE_PortableSpeaker_Base: InventoryBase
+    {
+        scope = 2;
+        displayName = "Портативная колонка";
+        descriptionShort = "Усиливает звук подключённого плеера и разносит его далеко. Требует батарейки.";
+        model = "\dz\gear\electronics\shortwavealien.p3d"; // заглушка-модель
+        vehicleClass = "UE_AudioEquipment";
+        weight = 2500;
+        itemSize[] = {7, 5};
+        attachmentPos[] = {"batterybox"};
+    };
+    class UE_PortableSpeaker: UE_PortableSpeaker_Base
+    {
+        displayName = "Колонка «Гроза-3»";
     };
 
     // ---------- Расходники ----------
@@ -264,6 +296,20 @@ class UE_Config
                                 // 1 = стримы и внешние треки, 0 = только штатный SoundSource
     bridgeMasterDb = -6;        // общий уровень моста, дБ
     bridgeMusicGain = 100;      // усиление канала музыки, %
+
+    // ---- наушники / колонки (модуль UE_ModuleAccessories) ----
+    headphonesRange = 5;        // макс. дистанция подключения наушников к плееру, м
+    speakerRange = 8;           // макс. дистанция подключения колонки к плееру, м
+    speakerRadiusMult = 3;      // во сколько раз колонка увеличивает радиус слышимости
+    speakerVolumeMult = 1.2;    // и базовую громкость источника (клампится до 1)
+
+    // ---- серверный прокси радиопотоков (tools/ue_stream_proxy.py) ----
+    // Если прокси запущен, укажите его базовый URL, например:
+    //   streamProxyURL = "http://127.0.0.1:8090";
+    // Тогда клиенты подключаются к прокси (одно восходящее соединение
+    // на станцию для всех игроков), а не к внешним серверам напрямую.
+    // Пусто = прямые ссылки из Radio.txt/config.cpp.
+    streamProxyURL = "";
 
     // ========== ВНЕШНЯЯ МУЗЫКАЛЬНАЯ БИБЛИОТЕКА (без PBO) ==========
     // Корень библиотеки. По умолчанию создаётся в профиле сервера:

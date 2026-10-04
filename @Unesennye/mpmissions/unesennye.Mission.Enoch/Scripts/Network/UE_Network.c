@@ -43,6 +43,14 @@ class UE_ModulePlayer: ScriptModule
         GetRPCManager().SendRPC("UE_Network", "OnClientStopSource", p, true, null);
     }
 
+    //~ сервер -> всем: состояние аксессуаров источника (наушники/колонка)
+    static void RPC_SetAccessory(int id, int privateOwnerID, bool hasSpeaker)
+    {
+        if (!GetGame().IsDedicated()) return;
+        Param3<int, int, bool> p = new Param3<int, int, bool>(id, privateOwnerID, hasSpeaker);
+        GetRPCManager().SendRPC("UE_Network", "OnClientAccessory", p, true, null);
+    }
+
     static void RPC_UpdatePosition(int id, vector pos)
     {
         if (!GetGame().IsDedicated()) return;
@@ -59,12 +67,27 @@ class UE_NetworkHandler: ModuleBase
         GetRPCManager().AddRPC("UE_Network", "OnClientCreateSource", this, FunccType.serverbc);
         GetRPCManager().AddRPC("UE_Network", "OnClientStopSource", this, FunccType.serverbc);
         GetRPCManager().AddRPC("UE_Network", "OnClientUpdatePos", this, FunccType.serverbc);
+        GetRPCManager().AddRPC("UE_Network", "OnClientAccessory", this, FunccType.serverbc);
         GetRPCManager().AddRPC("UE_Network", "OnLibraryManifest", this, FunccType.serverown);
         // серверные обработчики входящих запросов от игроков
         GetRPCManager().AddRPC("UE_Network", "CmdPlayCassette", this, FunccType.clientown);
         GetRPCManager().AddRPC("UE_Network", "CmdPlayDisk", this, FunccType.clientown);
         GetRPCManager().AddRPC("UE_Network", "CmdPlayRadio", this, FunccType.clientown);
         GetRPCManager().AddRPC("UE_Network", "CmdStopSource", this, FunccType.clientown);
+    }
+
+    //~ ---------- КЛИЕНТ: наушники/колонка у источника ----------
+    void OnClientAccessory(CallType type, ref ParamsReadContext ctx, ref PlayerIdentity sender, ref Object target)
+    {
+        if (GetGame().IsDedicated()) return;
+        Param3<int, int, bool> data; if (!ctx.Read(data)) return;
+        UE_PlaybackState st;
+        if (!UE_AudioManager.s_ClientMirror || !UE_AudioManager.s_ClientMirror.Find(data.param1, st)) return;
+        st.privateOwnerID = data.param2;   // 0 = публичный источник
+        st.hasSpeaker = data.param3;
+        UE_LocalSound snd;
+        if (UE_AudioManager.ClientSounds().Find(data.param1, snd))
+            UE_AudioManager.Instance().ApplyLocalVolume(st);   // пересчитать громкость сразу
     }
 
     //~ ---------- КЛИЕНТ: создать локальный звук ----------
@@ -209,6 +232,13 @@ class UE_NetworkHandler: ModuleBase
             {
                 string url = UE_MusicLibrary.ClientStationUrl(key);          // Radio.txt / манифест
                 if (url.Length() == 0) url = UE_AudioManager.GetStationURL(key); // белый список config.cpp
+                // серверный прокси радиопотоков (tools/ue_stream_proxy.py):
+                // перепишем прямую ссылку станции на локальный прокси —
+                // все игроки тянут поток с одного адреса, внешняя станция
+                // видит одно соединение вместо N.
+                string proxy = UE_AudioManager.Instance().GetStreamProxyURL();
+                if (proxy.Length() > 0 && key.Length() > 0 && url.StartsWith("http"))
+                    return proxy + "/" + key;
                 return url;
             }
             case UE_SourceType.CASSETTE:
