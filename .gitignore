@@ -6,3 +6,6 @@ __pycache__/
 .DS_Store
 Thumbs.db
 VOS_Radio_source.zip
+
+# чужой мод-пример — только локально, для справки (не является частью мода)
+examples/

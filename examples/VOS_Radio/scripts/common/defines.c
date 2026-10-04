@@ -1,1 +1,0 @@
-#define VOS_Radio
