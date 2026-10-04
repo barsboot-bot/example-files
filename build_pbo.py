@@ -133,7 +133,8 @@ def main():
     packer(mission_src, m2)
 
     # PBO ассетов (модели .p3d + текстуры) — отдельный аддон Unesennye_Data
-    data_src = os.path.join(src, "Unesennye_Data")
+    # (исходники лежат в ROOT/Unesennye_Data; staged-копия мода не нужна)
+    data_src = os.path.join(ROOT, "Unesennye_Data")
     if os.path.isdir(data_src):
         packer(data_src, os.path.join(stage_cli, "Unesennye_Data.pbo"))
 

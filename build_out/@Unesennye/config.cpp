@@ -32,7 +32,7 @@ class CfgPatches
         url = "";
         version = "1.0.0";
         requiredVersion = 0;
-        requiredAddons[] = {};
+        requiredAddons[] = {"DZ_Data", "UE_Data"};
         units[] = { "UE_CassettePlayer", "UE_DiskPlayer", "UE_RadioReceiver", "UE_CarRadioUnit", "UE_Headphones", "UE_PortableSpeaker" };
         weapons[] = { "UE_Magazine_Cassette_Rock", "UE_Magazine_Cassette_Pop", "UE_Magazine_Disk_Classic", "UE_Item_Cassette_Rock", "UE_Item_Disk_Dance" };
     };
