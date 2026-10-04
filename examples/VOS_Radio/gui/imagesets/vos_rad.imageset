@@ -1,0 +1,20 @@
+ImageSetClass {
+ Name "vos_rad"
+ RefSize 1024 1024
+ Textures {
+  ImageSetTextureClass {
+   mpix 1
+   path "{9FD0B2921F6202DD}VOS_Radio/gui/imagesets/vos_ter.edds"
+  }
+ }
+ Images {
+  ImageSetDefClass vos_casseta {
+   Name "vos_casseta"
+   Pos 0 0
+   Size 1024 1024
+   Flags 0
+  }
+ }
+ Groups {
+ }
+}

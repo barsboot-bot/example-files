@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<modded_inputs>
+	<inputs>
+		<actions>
+			<input name="UAToggleRadio" loc="#toggle_radio" />
+			<input name="UACarNextTrack" loc="#next_track" />
+			<input name="UACarPreviousTrack" loc="#previous_track" />
+		</actions>
+		<sorting name="Radio" loc="Radio">
+            <input name="UAToggleRadio"/>
+            <input name="UACarNextTrack"/>
+            <input name="UACarPreviousTrack"/>
+        </sorting>
+	</inputs>
+    <preset>
+		<input name="UAToggleRadio">
+            <btn name="kJ"/>
+        </input>
+		<input name="UACarNextTrack">
+            <btn name="kRight"/>
+        </input>
+		<input name="UACarPreviousTrack">
+            <btn name="kLeft"/>
+        </input>
+    </preset>
+</modded_inputs>

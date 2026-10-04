@@ -1,18 +1,20 @@
-// ============================================================
-//  УНЕСЁННЫЕ — ассеты (отдельный аддон, укладывается в PBO как
-//  Unesennye_Data.pbo). Модели (.p3d) кладите в Data\, текстуры
-//  (.png/.jpg) рядом с моделью в подпапке tex\.
-//  Путь в config.cpp: model = "\Unesennye_Data\Data\Gear\Cassette\cassette.p3d";
-// ============================================================
-class CfgPatches
-{
-    class UE_Data
-    {
+// =====================================================================
+//  Unesennye_Data — аддон ассетов (модели и текстуры предметов)
+//  Модели предоставлены примером VOS_Radio (автор Voster).
+//  ВНИМАНИЕ: пути к материалам внутри .p3d указывают на исходные папки
+//  VOS_Radio\... — для корректного отображения либо упакуйте эти же
+//  data/*.rvmat+*.paa по путям VOS_Radio/<...>/<file>, либо пересоберите
+//  материалы в Material Builder на относительные пути tex\<файл>.
+// =====================================================================
+
+class CfgPatches {
+    class UE_Data {
         name = "Unesennye Data";
         author = "Unesennye";
-        url = "";
-        version = 1;
-        requiredAddons[] = { "DZ_Data", "DZ_Gear_Electronics" };
+        version = 1.0;
+        units[] = {};
+        weapons[] = {};
         requiredVersion = 0.1;
+        requiredAddons[] = {"DZ_Data"};
     };
 };
